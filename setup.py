@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python2
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2009-2013. It is licensed under
 # the three-clause BSD license; see doc/LICENSE.txt.
@@ -41,14 +41,15 @@ os.environ['OPT'] = " ".join(
 # change setup.cfg or use the `--libraries z,bz2` parameter which will make our
 # custom build_ext command strip out the bundled versions.
 
-ZLIBDIR = 'lib/zlib'
-BZIP2DIR = 'lib/bzip2'
+ZLIBDIR = 'third-party/zlib'
+BZIP2DIR = 'third-party/bzip2'
 
 EXTRA_OBJS = []
-EXTRA_OBJS.extend(path_join("lib", "zlib", bn + ".lo") for bn in [
-    "adler32", "compress", "crc32", "deflate", "infback", "inffast", "inflate",
-    "inftrees", "trees", "uncompr", "zutil"])
-EXTRA_OBJS.extend(path_join("lib", "bzip2", bn + ".o") for bn in [
+EXTRA_OBJS.extend(path_join("third-party", "zlib", bn + ".lo") for bn in [
+    "adler32", "compress", "crc32", "deflate", "gzclose", "gzlib", "gzread",
+    "gzwrite", "infback", "inffast", "inflate", "inftrees", "trees", "uncompr",
+    "zutil"])
+EXTRA_OBJS.extend(path_join("third-party", "bzip2", bn + ".o") for bn in [
     "blocksort", "huffman", "crctable", "randtable", "compress", "decompress",
     "bzlib"])
 
@@ -85,6 +86,14 @@ SCRIPTS.extend([path_join("scripts", script)
                 for script in os_listdir("scripts")
                 if script.endswith(".py")])
 
+INSTALL_REQUIRES = ["screed >= 0.7.1"]
+
+try:
+    import argparse
+    del argparse
+except ImportError:
+    INSTALL_REQUIRES.append("argparse >= 1.2.1")
+
 SETUP_METADATA = \
     {
         "name": "khmer",
@@ -101,8 +110,9 @@ SETUP_METADATA = \
         # http://docs.python.org/2/distutils/setupscript.html
         # additiona-meta-data note #3
         "url": 'http://ged.msu.edu/',
-        "packages": ['khmer'],
-        "install_requires": ["screed >= 0.7.1", 'argparse >= 1.2.1', ],
+        "packages": ['khmer', 'khmer.tests'],
+        "package_dir": {'khmer.tests': 'tests'},
+        "install_requires": INSTALL_REQUIRES,
         "extras_require": {'docs': ['sphinx', 'sphinxcontrib-autoprogram'],
                            'tests': ['nose >= 1.0']},
         "scripts": SCRIPTS,

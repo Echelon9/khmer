@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 #
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2009-2014. It is licensed under
@@ -33,7 +33,7 @@ def get_parser():
 
     Example::
 
-        load_into_counting.py -k 20 -x 5e7 out.kh data/100k-filtered.fa
+        load-into-counting.py -k 20 -x 5e7 out.kh data/100k-filtered.fa
 
     Multiple threads can be used to accelerate the process, if you have extra
     cores to spare.
@@ -54,6 +54,8 @@ def get_parser():
     parser.add_argument('-b', '--no-bigcount', dest='bigcount', default=True,
                         action='store_false',
                         help='Do not count k-mers past 255')
+    parser.add_argument('--report-total-kmers', '-t', action='store_true',
+                        help="Prints the total number of k-mers to stderr")
     return parser
 
 
@@ -105,6 +107,10 @@ def main():
             print 'mid-save', base
             htable.save(base)
             open(base + '.info', 'w').write('through %s' % filename)
+
+    if args.report_total_kmers:
+        print >> sys.stderr, 'Total number of k-mers: {0}'.format(
+            htable.n_occupied())
 
     print 'saving', base
     htable.save(base)

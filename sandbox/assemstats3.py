@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 #
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2009-2013. It is licensed under
@@ -25,7 +25,7 @@ Author: Jason Pell (pelljaso@cse.msu.edu)
 import screed
 import sys
 import glob
-
+import os
 
 def trimLens(lens, minLen):
     '''
@@ -102,6 +102,10 @@ def main():
     print "N\tsum\tmax\tfilename"
 
     for filename in sys.argv[2:]:
+        if not os.path.exists(filename):
+            print >>sys.stderr, "WARNING: file %s does not exist." % filename
+            continue
+        
         lens = getLens(filename)
         trimmedLens = trimLens(lens, minLen)
 

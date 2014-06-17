@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 #
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2010-2014. It is licensed under
@@ -36,7 +36,7 @@ def get_parser():
     :program:`abundance_dist.py`.
     '''
     parser = build_counting_args(
-        descr="Caculate the abundance distribution of k-mers from a "
+        descr="Calculate the abundance distribution of k-mers from a "
         "single sequence file.", epilog=textwrap.dedent(epilog))
     add_threading_args(parser)
 
@@ -58,6 +58,8 @@ def get_parser():
     parser.add_argument('--savetable', default='', metavar="filename",
                         help="Save the k-mer counting table to the specified "
                         "filename.")
+    parser.add_argument('--report-total-kmers', '-t', action='store_true',
+                        help="Prints the total number of k-mers to stderr")
     return parser
 
 
@@ -73,7 +75,8 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
 
     if (not args.squash_output and
             os.path.exists(args.output_histogram_filename)):
-        print >> sys.stderr, 'ERROR: %s exists; not squashing.' % args.histout
+        print >> sys.stderr, 'ERROR: %s exists; not squashing.' % \
+            args.output_histogram_filename
         sys.exit(1)
     else:
         hist_fp = open(args.output_histogram_filename, 'w')
@@ -95,20 +98,24 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
     khmer.get_config().set_reads_input_buffer_size(args.threads * 64 * 1024)
 
     # start loading
+    rparser = khmer.ReadParser(args.input_sequence_filename, args.threads)
     threads = []
     print 'consuming input, round 1 --', args.input_sequence_filename
     for _ in xrange(args.threads):
         thread = \
             threading.Thread(
                 target=counting_hash.consume_fasta_with_reads_parser,
-                args=(khmer.ReadParser(args.input_sequence_filename,
-                                       args.threads), )
+                args=(rparser, )
             )
         threads.append(thread)
         thread.start()
 
     for thread in threads:
         thread.join()
+
+    if args.report_total_kmers:
+        print >> sys.stderr, 'Total number of k-mers: {0}'.format(
+            counting_hash.n_occupied())
 
     abundance_lists = []
 
@@ -118,14 +125,14 @@ def main():  # pylint: disable=too-many-locals,too-many-branches
         abundance_lists.append(abundances)
 
     print 'preparing hist from %s...' % args.input_sequence_filename
+    rparser = khmer.ReadParser(args.input_sequence_filename, args.threads)
     threads = []
     print 'consuming input, round 2 --', args.input_sequence_filename
     for _ in xrange(args.threads):
         thread = \
             threading.Thread(
                 target=__do_abundance_dist__,
-                args=(khmer.ReadParser(args.input_sequence_filename,
-                                       args.threads), )
+                args=(rparser, )
             )
         threads.append(thread)
         thread.start()

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 #
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2009-2014. It is licensed under
@@ -71,7 +71,7 @@ def main():
     graphbase = args.graphbase
 
     # @RamRS: This might need some more work
-    infiles = [graphbase + '.ht', graphbase + '.tagset']
+    infiles = [graphbase + '.pt', graphbase + '.tagset']
     if args.stoptags:
         infiles.append(args.stoptags)
     for _ in infiles:
@@ -79,7 +79,7 @@ def main():
 
     check_space(infiles)
 
-    print 'loading htable %s.ht' % graphbase
+    print 'loading htable %s.pt' % graphbase
     htable = khmer.load_hashbits(graphbase + '.pt')
 
     # do we want to load stop tags, and do they exist?

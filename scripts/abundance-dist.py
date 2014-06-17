@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 #
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2010-2014. It is licensed under
@@ -54,8 +54,6 @@ def main():
                args.input_sequence_filename]
     for infile in infiles:
         check_file_status(infile)
-
-    check_space(infiles)
 
     print('hashtable from', args.input_counting_table_filename)
     counting_hash = khmer.load_counting_hash(

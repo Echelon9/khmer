@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 #
 # This file is part of khmer, http://github.com/ged-lab/khmer/, and is
 # Copyright (C) Michigan State University, 2009-2014. It is licensed under
@@ -27,6 +27,9 @@ import argparse
 from khmer.file import (check_space, check_space_for_hashtable,
                         check_valid_file_exists)
 DEFAULT_DESIRED_COVERAGE = 10
+
+MAX_FALSE_POSITIVE_RATE = 0.8             # see Zhang et al.,
+# http://arxiv.org/abs/1309.2975
 
 # Iterate a collection in arbitrary batches
 # from: http://stackoverflow.com/questions/4628290/pairs-from-single-list
@@ -139,13 +142,16 @@ def get_parser():
     keeping (or discarding) each sequencing fragment. This helps with retention
     of repeats, especially.
 
-    With :option:`-s`/:option:`--savetable`, the k-mer counting table will be
-    saved to the specified file after all sequences have been processed. With
-    :option:`-d`, the k-mer counting table will be saved every d files for
-    multifile runs; if :option:`-s` is set, the specified name will be used,
-    and if not, the name `backup.ct` will be used.
-    :option:`-l`/:option:`--loadtable` will load the specified k-mer counting
-    table before processsing the specified files.
+    With :option:`-s`/:option:`--savetable`, the k-mer counting table
+    will be saved to the specified file after all sequences have been
+    processed. With :option:`-d`, the k-mer counting table will be
+    saved every d files for multifile runs; if :option:`-s` is set,
+    the specified name will be used, and if not, the name `backup.ct`
+    will be used.  :option:`-l`/:option:`--loadtable` will load the
+    specified k-mer counting table before processing the specified
+    files.  Note that these tables are are in the same format as those
+    produced by :program:`load-into-counting.py` and consumed by
+    :program:`abundance-dist.py`.
 
     :option:`-f`/:option:`--fault-tolerant` will force the program to continue
     upon encountering a formatting error in a sequence file; the k-mer counting
@@ -170,7 +176,7 @@ def get_parser():
 
 """ "        normalize-by-median.py -k 17 -d 2 -s test.ct tests/test-data/test-abund-read-2.fa tests/test-data/test-fastq-reads")   # noqa
     parser = build_counting_args(
-        descr="Do digital normilization (remove mostly redundant sequences)",
+        descr="Do digital normalization (remove mostly redundant sequences)",
         epilog=textwrap.dedent(epilog))
     parser.add_argument('-C', '--cutoff', type=int,
                         default=DEFAULT_DESIRED_COVERAGE)
@@ -193,6 +199,9 @@ def get_parser():
                         ' file with the specified filename')
     parser.add_argument('input_filenames', metavar='input_sequence_filename',
                         help='Input FAST[AQ] sequence filename.', nargs='+')
+    parser.add_argument('--report-total-kmers', '-t', action='store_true',
+                        help="Prints the total number of k-mers"
+                        " post-normalization to stderr")
     add_loadhash_args(parser)
     return parser
 
@@ -245,6 +254,7 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
                          htable)
             if not args.force:
                 print >> sys.stderr, '** Exiting!'
+
                 sys.exit(1)
             else:
                 print >> sys.stderr, '*** Skipping error file, moving on...'
@@ -256,9 +266,9 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
                 total += total_acc
                 discarded += discarded_acc
                 print 'DONE with {inp}; kept {kept} of {total} or {perc:2}%'\
-                    .format(inp=input_filename,
-                            kept=total - discarded, total=total,
-                            perc=int(100. - discarded / float(total) * 100.))
+                      .format(inp=input_filename, kept=total - discarded,
+                              total=total, perc=int(100. - discarded /
+                                                    float(total) * 100.))
                 print 'output in', output_name
 
         if (args.dump_frequency > 0 and
@@ -272,12 +282,15 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
                 print 'Nothing given for savetable, saving to', hashname
             htable.save(hashname)
 
+    if args.report_total_kmers:
+        print >> sys.stderr, 'Total number of k-mers: {0}'.format(
+            htable.n_occupied())
+
     if args.savetable:
         print 'Saving k-mer counting table through', input_filename
         print '...saving to', args.savetable
         htable.save(args.savetable)
 
-    # Change 0.2 only if you really grok it.  HINT: You don't.
     fp_rate = khmer.calc_expected_collisions(htable)
     print 'fp rate estimated to be {fpr:1.3f}'.format(fpr=fp_rate)
 
@@ -286,10 +299,10 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
         print >> sys.stderr, "** IOErrors occurred in the following files:"
         print >> sys.stderr, "\t", " ".join(corrupt_files)
 
-    if fp_rate > 0.20:
+    if fp_rate > MAX_FALSE_POSITIVE_RATE:
         print >> sys.stderr, "**"
         print >> sys.stderr, ("** ERROR: the k-mer counting table is too small"
-                              " for this data set.  Increase tablesize/# "
+                              " for this data set. Increase tablesize/# "
                               "tables.")
         print >> sys.stderr, "**"
         print >> sys.stderr, "** Do not use these results!!"
